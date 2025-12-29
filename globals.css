@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-dark: #0D1117;
+  --panel-dark: #161B22;
+  --border-color: #30363D;
+  --text-primary: #FFFFF0;
+  --text-secondary: #8B949E;
+  --accent-mint: #00DCA3;
+  --accent-red: #da3633;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+}
+
+@layer utilities {
+  .pj-card {
+    @apply bg-[#161B22] border border-[#30363D] rounded-xl;
+  }
+
+  .pj-input {
+    @apply w-full bg-[#0D1117] border border-[#30363D] text-gray-200 px-4 py-3 rounded-lg focus:border-[#00DCA3] outline-none transition-colors;
+  }
+
+  .pj-label {
+    @apply text-[#8B949E] text-xs font-medium mb-1.5 block;
+  }
+
+  .pj-btn-primary {
+    @apply w-full bg-[#00DCA3] hover:bg-[#00bda0] text-black font-bold py-3 rounded-lg transition-all shadow-[0_0_15px_rgba(0, 220, 163, 0.3)];
+  }
+}
