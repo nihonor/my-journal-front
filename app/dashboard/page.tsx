@@ -198,7 +198,7 @@ export default function Dashboard() {
                             <NavTab icon="📊" label="Dashboard" active={activeTab === 'dashboard'} onClick={() => navigateTo('dashboard')} />
                             <NavTab icon="➕" label="New Trade" active={activeTab === 'new-trade'} onClick={() => navigateTo('new-trade')} />
                             <NavTab icon="👥" label="Community" />
-                            <NavTab icon="📈" label="Analytics" active={activeTab === 'analytics'} onClick={() => router.push('/analytics')} />
+                            <NavTab icon="📈" label="Analytics" active={activeTab === 'analytics'} onClick={() => navigateTo('analytics')} />
                             <NavTab icon="🏆" label="Challenges" />
                         </div>
                     </div>
@@ -320,11 +320,40 @@ export default function Dashboard() {
                 )}
 
                 {activeTab === 'new-trade' && (
-                    <div className="max-w-2xl mx-auto">
-                        <div className="pj-card p-6">
-                            <h2 className="text-white font-bold text-xl mb-6">New Trade Entry</h2>
-                            <TradeForm onSuccess={() => { navigateTo('dashboard'); fetchData(); }} />
+                    <div className="grid grid-cols-12 gap-6">
+                        {/* Left: Trade Entry Form */}
+                        <div className="col-span-5">
+                            <div className="pj-card p-6">
+                                <h2 className="text-white font-bold text-xl mb-6">New Trade Entry</h2>
+                                <TradeForm
+                                    onSuccess={() => { navigateTo('dashboard'); fetchData(); }}
+                                    onPairChange={(pair) => setSelectedTrade({ ...selectedTrade, pair } as any)}
+                                />
+                            </div>
                         </div>
+
+                        {/* Right: Live Chart Preview */}
+                        <div className="col-span-7">
+                            <div className="pj-card p-4">
+                                <h3 className="text-white font-bold text-lg mb-4">
+                                    {selectedTrade?.pair || 'EURUSD'} - Chart Preview
+                                </h3>
+                                <div className="h-[700px]">
+                                    <TradingViewChart
+                                        symbol={selectedTrade?.pair || 'EURUSD'}
+                                        entryPrice={selectedTrade?.entry_price}
+                                        stopLoss={selectedTrade?.stop_loss}
+                                        takeProfit={selectedTrade?.take_profit}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'analytics' && (
+                    <div className="max-w-5xl mx-auto">
+                        <PerformanceAnalytics stats={stats} trades={trades} />
                     </div>
                 )}
             </main>

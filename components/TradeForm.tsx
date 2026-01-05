@@ -1,10 +1,24 @@
 'use client';
 import { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { TrendingUp, TrendingDown, Smile, Frown, Coffee, Zap, Info, Shield } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
-export default function TradeForm({ onSuccess }: { onSuccess: () => void }) {
-    const [type, setType] = useState('Long');
+const EMOTIONS = [
+    { value: 'confident', label: 'Confident', emoji: '💪' },
+    { value: 'nervous', label: 'Nervous', emoji: '😰' },
+    { value: 'greedy', label: 'Greedy', emoji: '🤑' },
+    { value: 'patient', label: 'Patient', emoji: '🧘' },
+    { value: 'reckless', label: 'Reckless', emoji: '😤' },
+    { value: 'disciplined', label: 'Disciplined', emoji: '🎯' },
+];
+
+const CURRENCY_PAIRS = [
+    'EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD',
+    'NZDUSD', 'USDCHF', 'EURJPY', 'GBPJPY', 'EURGBP'
+];
+
+export default function TradeForm({ onSuccess, onPairChange }: { onSuccess: () => void; onPairChange?: (pair: string) => void }) {
+    const [type, setType] = useState<'Long' | 'Short'>('Long');
     const [formData, setFormData] = useState({
         pair: 'EURUSD',
         lot_size: '0.1',
@@ -12,161 +26,227 @@ export default function TradeForm({ onSuccess }: { onSuccess: () => void }) {
         stop_loss: '',
         take_profit: '',
         notes: '',
-        emotion: ''
+        emotion: 'patient'
     });
 
     const [calculations, setCalculations] = useState({
-        risk: 0,
-        reward: 0,
-        rr: '0:0'
+        riskReward: 0,
+        pips: 0,
+        riskPips: 0,
     });
 
-    // Mock Calculation Logic (Simple pip diff)
-    useEffect(() => {
-        const entry = parseFloat(formData.entry_price);
-        const sl = parseFloat(formData.stop_loss);
-        const tp = parseFloat(formData.take_profit);
+    const calculateMetrics = (data: typeof formData) => {
+        const entry = parseFloat(data.entry_price);
+        const sl = parseFloat(data.stop_loss);
+        const tp = parseFloat(data.take_profit);
 
         if (entry && sl && tp) {
-            const risk = Math.abs(entry - sl) * 10000; // Mock pip mult
-            const reward = Math.abs(tp - entry) * 10000;
-            const rr = (reward / risk).toFixed(1);
-            setCalculations({ risk: Math.round(risk), reward: Math.round(reward), rr: `1:${rr}` });
-        }
-    }, [formData.entry_price, formData.stop_loss, formData.take_profit]);
+            const riskPips = Math.abs(entry - sl) * 10000;
+            const rewardPips = Math.abs(tp - entry) * 10000;
+            const rr = rewardPips / riskPips;
 
-    const emos = [
-        { label: 'Confident', icon: Shield },
-        { label: 'Nervous', icon: Frown },
-        { label: 'Greedy', icon: Zap },
-        { label: 'Patient', icon: Coffee },
-        { label: 'Reckless', icon: Info },
-        { label: 'Disciplined', icon: Target }
-    ];
+            setCalculations({
+                riskReward: parseFloat(rr.toFixed(2)),
+                pips: parseFloat(rewardPips.toFixed(1)),
+                riskPips: parseFloat(riskPips.toFixed(1)),
+            });
+        }
+    };
+
+    const handleChange = (field: keyof typeof formData, value: string) => {
+        const newData = { ...formData, [field]: value };
+        setFormData(newData);
+
+        if (field === 'pair' && onPairChange) {
+            onPairChange(value);
+        }
+
+        if (['entry_price', 'stop_loss', 'take_profit'].includes(field)) {
+            calculateMetrics(newData);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await api.post('/trades', { ...formData, type, risk_reward: calculations.rr });
-            setFormData({ pair: 'EURUSD', lot_size: '0.1', entry_price: '', stop_loss: '', take_profit: '', notes: '', emotion: '' });
+            await api.post('/trades', {
+                ...formData,
+                type,
+                risk_reward: `1:${calculations.riskReward}`
+            });
             onSuccess();
+            // Reset form
+            setFormData({
+                pair: 'EURUSD',
+                lot_size: '0.1',
+                entry_price: '',
+                stop_loss: '',
+                take_profit: '',
+                notes: '',
+                emotion: 'patient'
+            });
+            setCalculations({ riskReward: 0, pips: 0, riskPips: 0 });
         } catch (error) {
             alert('Failed to save trade');
         }
     };
 
     return (
-        <div className="pj-card p-8 h-full overflow-y-auto">
-            <h2 className="text-xl text-white font-medium mb-6">New Trade Entry</h2>
-
-            <div className="flex gap-4 mb-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Direction Toggle */}
+            <div className="grid grid-cols-2 gap-3">
                 <button
+                    type="button"
                     onClick={() => setType('Long')}
-                    className={`flex-1 py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all ${type === 'Long' ? 'bg-[#00DCA3] text-black' : 'bg-[#0D1117] border border-[#30363D] text-[#8B949E]'}`}
+                    className={`py-4 rounded-lg flex items-center justify-center gap-2 transition-all font-bold ${type === 'Long'
+                            ? 'bg-[#00DCA3] text-black'
+                            : 'bg-[#161B22] text-[#8B949E] hover:text-white'
+                        }`}
                 >
-                    <TrendingUp size={18} /> BUY
+                    <TrendingUp className="w-5 h-5" />
+                    BUY
                 </button>
                 <button
+                    type="button"
                     onClick={() => setType('Short')}
-                    className={`flex-1 py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all ${type === 'Short' ? 'bg-[#da3633] text-white' : 'bg-[#0D1117] border border-[#30363D] text-[#8B949E]'}`}
+                    className={`py-4 rounded-lg flex items-center justify-center gap-2 transition-all font-bold ${type === 'Short'
+                            ? 'bg-[#da3633] text-white'
+                            : 'bg-[#161B22] text-[#8B949E] hover:text-white'
+                        }`}
                 >
-                    <TrendingDown size={18} /> SELL
+                    <TrendingDown className="w-5 h-5" />
+                    SELL
                 </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                    <label className="pj-label">Currency Pair</label>
-                    <select
-                        className="pj-input appearance-none"
-                        value={formData.pair}
-                        onChange={e => setFormData({ ...formData, pair: e.target.value })}
-                    >
-                        <option>EURUSD</option>
-                        <option>GBPUSD</option>
-                        <option>USDJPY</option>
-                        <option>BTCUSD</option>
-                    </select>
-                </div>
+            {/* Currency Pair */}
+            <div>
+                <label className="block text-sm text-[#8B949E] mb-2">Currency Pair</label>
+                <select
+                    value={formData.pair}
+                    onChange={(e) => handleChange('pair', e.target.value)}
+                    className="pj-input w-full font-mono"
+                    required
+                >
+                    {CURRENCY_PAIRS.map(pair => (
+                        <option key={pair} value={pair}>{pair}</option>
+                    ))}
+                </select>
+            </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                    <div>
-                        <label className="pj-label">Entry</label>
-                        <input
-                            required type="number" step="0.00001" placeholder="1.0850" className="pj-input"
-                            value={formData.entry_price} onChange={e => setFormData({ ...formData, entry_price: e.target.value })}
-                        />
-                    </div>
-                    <div>
-                        <label className="pj-label">Stop Loss</label>
-                        <input
-                            type="number" step="0.00001" placeholder="1.0800" className="pj-input text-[#da3633]"
-                            value={formData.stop_loss} onChange={e => setFormData({ ...formData, stop_loss: e.target.value })}
-                        />
-                    </div>
-                    <div>
-                        <label className="pj-label">Take Profit</label>
-                        <input
-                            type="number" step="0.00001" placeholder="1.0900" className="pj-input text-[#00DCA3]"
-                            value={formData.take_profit} onChange={e => setFormData({ ...formData, take_profit: e.target.value })}
-                        />
-                    </div>
-                </div>
-
+            {/* Price Inputs */}
+            <div className="grid grid-cols-3 gap-3">
                 <div>
-                    <label className="pj-label">Lot Size</label>
+                    <label className="block text-sm text-[#8B949E] mb-2">Entry</label>
                     <input
-                        required type="number" step="0.01" className="pj-input"
-                        value={formData.lot_size} onChange={e => setFormData({ ...formData, lot_size: e.target.value })}
+                        type="number"
+                        step="0.00001"
+                        value={formData.entry_price}
+                        onChange={(e) => handleChange('entry_price', e.target.value)}
+                        className="pj-input w-full font-mono"
+                        placeholder="1.08500"
+                        required
                     />
                 </div>
-
-                {/* Live Calculator */}
-                <div className="bg-[#0D1117] border border-[#30363D] rounded-lg p-4 grid grid-cols-3 gap-4 text-center">
-                    <div>
-                        <p className="text-[10px] text-[#8B949E] uppercase mb-1">Risk:Reward</p>
-                        <p className="text-[#ffb700] font-bold font-mono">{calculations.rr}</p>
-                    </div>
-                    <div>
-                        <p className="text-[10px] text-[#8B949E] uppercase mb-1">Risk (pips)</p>
-                        <p className="text-[#da3633] font-bold font-mono">{calculations.risk}</p>
-                    </div>
-                    <div>
-                        <p className="text-[10px] text-[#8B949E] uppercase mb-1">Reward (pips)</p>
-                        <p className="text-[#00DCA3] font-bold font-mono">{calculations.reward}</p>
-                    </div>
-                </div>
-
                 <div>
-                    <label className="pj-label mb-3">How do you feel about this trade?</label>
-                    <div className="grid grid-cols-3 gap-3">
-                        {emos.map((em) => (
-                            <div
-                                key={em.label}
-                                onClick={() => setFormData({ ...formData, emotion: em.label })}
-                                className={`cursor-pointer rounded-lg p-3 flex flex-col items-center gap-2 border transition-all ${formData.emotion === em.label ? 'border-[#00DCA3] bg-[#00DCA3]/10 text-[#00DCA3]' : 'border-[#30363D] bg-[#0D1117] text-[#8B949E] hover:border-[#8B949E]'}`}
-                            >
-                                <em.icon size={18} />
-                                <span className="text-[10px] font-medium">{em.label}</span>
-                            </div>
-                        ))}
+                    <label className="block text-sm text-[#8B949E] mb-2">Stop Loss</label>
+                    <input
+                        type="number"
+                        step="0.00001"
+                        value={formData.stop_loss}
+                        onChange={(e) => handleChange('stop_loss', e.target.value)}
+                        className="pj-input w-full font-mono"
+                        placeholder="1.08000"
+                        required
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm text-[#8B949E] mb-2">Take Profit</label>
+                    <input
+                        type="number"
+                        step="0.00001"
+                        value={formData.take_profit}
+                        onChange={(e) => handleChange('take_profit', e.target.value)}
+                        className="pj-input w-full font-mono"
+                        placeholder="1.09000"
+                        required
+                    />
+                </div>
+            </div>
+
+            {/* Lot Size */}
+            <div>
+                <label className="block text-sm text-[#8B949E] mb-2">Lot Size</label>
+                <input
+                    type="number"
+                    step="0.01"
+                    value={formData.lot_size}
+                    onChange={(e) => handleChange('lot_size', e.target.value)}
+                    className="pj-input w-full font-mono"
+                    placeholder="0.1"
+                    required
+                />
+            </div>
+
+            {/* Auto-Calculations Display */}
+            {calculations.riskReward > 0 && (
+                <div className="bg-[#0A1A3D]/50 border border-[#00DCA3]/30 rounded-lg p-4 grid grid-cols-3 gap-4">
+                    <div>
+                        <div className="text-xs text-[#8B949E]">Risk:Reward</div>
+                        <div className={`font-mono text-lg ${calculations.riskReward >= 2 ? 'text-[#00DCA3]' : 'text-[#ffb700]'}`}>
+                            1:{calculations.riskReward}
+                        </div>
+                    </div>
+                    <div>
+                        <div className="text-xs text-[#8B949E]">Risk (pips)</div>
+                        <div className="font-mono text-lg text-[#da3633]">{calculations.riskPips}</div>
+                    </div>
+                    <div>
+                        <div className="text-xs text-[#8B949E]">Reward (pips)</div>
+                        <div className="font-mono text-lg text-[#00DCA3]">{calculations.pips}</div>
                     </div>
                 </div>
+            )}
 
-                <div>
-                    <label className="pj-label">Trade Notes</label>
-                    <textarea
-                        rows={3}
-                        className="pj-input resize-none"
-                        placeholder="Why are you taking this trade? What's your analysis?"
-                        value={formData.notes}
-                        onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                    ></textarea>
+            {/* Emotional State */}
+            <div>
+                <label className="block text-sm text-[#8B949E] mb-2">How do you feel about this trade?</label>
+                <div className="grid grid-cols-3 gap-2">
+                    {EMOTIONS.map(emotion => (
+                        <button
+                            key={emotion.value}
+                            type="button"
+                            onClick={() => handleChange('emotion', emotion.value)}
+                            className={`py-3 rounded-lg text-sm transition-all ${formData.emotion === emotion.value
+                                    ? 'bg-[#00DCA3] text-black'
+                                    : 'bg-[#161B22] text-[#8B949E] hover:text-white'
+                                }`}
+                        >
+                            <div className="text-xl">{emotion.emoji}</div>
+                            <div className="text-xs mt-1">{emotion.label}</div>
+                        </button>
+                    ))}
                 </div>
+            </div>
 
-                <button type="submit" className="pj-btn-primary">Save Trade</button>
-            </form>
-        </div>
+            {/* Notes */}
+            <div>
+                <label className="block text-sm text-[#8B949E] mb-2">Trade Notes</label>
+                <textarea
+                    value={formData.notes}
+                    onChange={(e) => handleChange('notes', e.target.value)}
+                    className="pj-input w-full h-24 resize-none"
+                    placeholder="Why are you taking this trade? What's your analysis?"
+                />
+            </div>
+
+            {/* Submit Button */}
+            <button
+                type="submit"
+                className="w-full bg-[#00DCA3] hover:bg-[#00DCA3]/90 text-black py-4 rounded-lg transition-all font-bold"
+            >
+                Save Trade
+            </button>
+        </form>
     );
 }
-import { Target } from 'lucide-react'; 
