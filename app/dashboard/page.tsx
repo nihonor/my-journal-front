@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import TradeForm from '@/components/TradeForm';
 import PerformanceAnalytics from '@/components/PerformanceAnalytics';
 import AuthOverlay from '@/components/AuthOverlay';
@@ -9,6 +10,7 @@ import { Trade, TradeStats } from '@/types';
 import { ArrowLeft, Bell, TrendingUp, TrendingDown } from 'lucide-react';
 
 export default function Dashboard() {
+    const router = useRouter();
     const [view, setView] = useState('dashboard');
     const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
     const [trades, setTrades] = useState<Trade[]>([]);
@@ -113,7 +115,7 @@ export default function Dashboard() {
                 <NavTab icon="📊" label="Dashboard" active={view === 'dashboard'} onClick={() => setView('dashboard')} />
                 <NavTab icon="➕" label="New Trade" active={view === 'new-trade'} onClick={() => setView('new-trade')} />
                 <NavTab icon="👥" label="Community" />
-                <NavTab icon="📈" label="Analytics" />
+                <NavTab icon="📈" label="Analytics" onClick={() => router.push('/analytics')} />
                 <NavTab icon="🏆" label="Challenges" />
             </nav>
 
@@ -198,8 +200,15 @@ export default function Dashboard() {
                                             <button className="px-3 py-1 bg-[#161B22] rounded border border-[#30363D] text-[#8B949E]">📊 Indicators</button>
                                         </div>
                                     </div>
-                                    <div className="flex-1 bg-[#0B0E11] rounded-lg overflow-hidden">
-                                        <TradingViewChart symbol={selectedTrade.pair} theme="dark" />
+                                    <div className="flex-1 bg-[#0B0E11] rounded-lg overflow-hidden flex items-center justify-center p-4">
+                                        <div className="w-full h-full max-w-[600px] max-h-[600px]">
+                                            <TradingViewChart
+                                                symbol={selectedTrade.pair}
+                                                entryPrice={selectedTrade.entry_price}
+                                                stopLoss={selectedTrade.stop_loss}
+                                                takeProfit={selectedTrade.take_profit}
+                                            />
+                                        </div>
                                     </div>
                                 </>
                             ) : (
