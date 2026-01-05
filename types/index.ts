@@ -8,6 +8,8 @@ export interface Trade {
     stop_loss?: number;
     take_profit?: number;
     profit_loss?: number;
+    risk_reward?: string;
+    emotion?: string;
     notes?: string;
     status: 'Open' | 'Closed' | 'Pending';
     trade_date: string;
