@@ -5,13 +5,20 @@ import TradeForm from '@/components/TradeForm';
 import PerformanceAnalytics from '@/components/PerformanceAnalytics';
 import AuthOverlay from '@/components/AuthOverlay';
 import TradingViewChart from '@/components/TradingViewChart';
+import Logo from '@/components/Logo';
 import api from '@/utils/api';
 import { Trade, TradeStats } from '@/types';
 import { ArrowLeft, Bell, TrendingUp, TrendingDown } from 'lucide-react';
 
 export default function Dashboard() {
     const router = useRouter();
-    const [view, setView] = useState('dashboard');
+    const [view, setView] = useState(() => {
+        // Restore last view from localStorage
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('lastView') || 'dashboard';
+        }
+        return 'dashboard';
+    });
     const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
     const [trades, setTrades] = useState<Trade[]>([]);
     const [stats, setStats] = useState<TradeStats>({
@@ -35,8 +42,12 @@ export default function Dashboard() {
             setStats(statsRes.data);
             setIsAuthenticated(true);
 
-            // Auto-select the first trade if available
-            if (tradesRes.data.trades.length > 0 && !selectedTrade) {
+            // Restore selected trade from localStorage
+            const savedTradeId = localStorage.getItem('selectedTradeId');
+            if (savedTradeId && tradesRes.data.trades.length > 0) {
+                const trade = tradesRes.data.trades.find((t: Trade) => t._id === savedTradeId);
+                setSelectedTrade(trade || tradesRes.data.trades[0]);
+            } else if (tradesRes.data.trades.length > 0 && !selectedTrade) {
                 setSelectedTrade(tradesRes.data.trades[0]);
             }
         } catch (error) {
@@ -55,6 +66,20 @@ export default function Dashboard() {
             setLoading(false);
         }
     }, []);
+
+    // Save view preference to localStorage
+    useEffect(() => {
+        if (view) {
+            localStorage.setItem('lastView', view);
+        }
+    }, [view]);
+
+    // Save selected trade to localStorage
+    useEffect(() => {
+        if (selectedTrade?._id) {
+            localStorage.setItem('selectedTradeId', selectedTrade._id);
+        }
+    }, [selectedTrade]);
 
     const handleAuth = async (data: any, isRegister: boolean) => {
         try {
@@ -76,42 +101,36 @@ export default function Dashboard() {
     return (
         <div className="h-screen bg-[#0D1117] text-[#EAECEF] font-sans flex flex-col overflow-hidden">
             {/* Top Header */}
-            <header className="h-16 bg-[#0D1117] border-b border-[#30363D] flex items-center justify-between px-6">
+            <header className="h-16 bg-[var(--background)] border-b border-[var(--border)] flex items-center justify-between px-6">
                 <div className="flex items-center gap-6">
                     {view !== 'dashboard' && (
-                        <button onClick={() => setView('dashboard')} className="text-[#8B949E] hover:text-white">
+                        <button onClick={() => setView('dashboard')} className="text-gray-400 hover:text-white">
                             <ArrowLeft size={20} />
                         </button>
                     )}
-                    <div className="flex items-center gap-3">
-                        <span className="text-[#00DCA3] font-black text-xl">PJ</span>
-                        <div className="flex flex-col">
-                            <span className="text-white font-bold text-xs tracking-wide">PERFECT JOURNAL</span>
-                            <span className="text-[#565D68] text-[8px] uppercase tracking-widest">Precision • Performance • Community</span>
-                        </div>
-                    </div>
+                    <Logo size="md" showText={true} />
                 </div>
 
                 <div className="flex gap-4 items-center">
-                    <button className="px-4 py-1.5 rounded-lg bg-transparent border border-[#00DCA3] text-[#00DCA3] text-xs hover:bg-[#00DCA3] hover:text-black transition-all flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-[#00DCA3]"></div> Become a Mentor
+                    <button className="px-4 py-1.5 rounded-lg bg-transparent border border-[var(--secondary)] text-[var(--secondary)] text-xs hover:bg-[var(--secondary)] hover:text-black transition-all flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-[var(--secondary)]"></div> Become a Mentor
                     </button>
-                    <button className="px-4 py-1.5 rounded-lg bg-transparent border border-[#00DCA3] text-[#00DCA3] text-xs hover:bg-[#00DCA3] hover:text-black transition-all">
+                    <button className="px-4 py-1.5 rounded-lg bg-transparent border border-[var(--secondary)] text-[var(--secondary)] text-xs hover:bg-[var(--secondary)] hover:text-black transition-all">
                         Academy
                     </button>
-                    <button className="px-6 py-1.5 rounded-lg bg-[#ffb700] text-black font-bold text-xs shadow-lg hover:bg-[#ffc800]">
+                    <button className="px-6 py-1.5 rounded-lg bg-[var(--accent)] text-black font-bold text-xs shadow-lg hover:brightness-110 transition-all glow-amber">
                         Subscribe
                     </button>
-                    <Bell size={18} className="text-[#8B949E] hover:text-white cursor-pointer" />
+                    <Bell size={18} className="text-gray-400 hover:text-white cursor-pointer" />
                     <div className="flex items-center gap-2 ml-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-[#00DCA3]"></div>
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[var(--primary)] to-[var(--secondary)]"></div>
                         <span className="text-xs text-white font-medium">Apprentice</span>
                     </div>
                 </div>
             </header>
 
             {/* Navigation Tabs */}
-            <nav className="h-12 bg-[#0D1117] border-b border-[#30363D] flex items-center px-6 gap-8">
+            <nav className="h-12 bg-[var(--background)] border-b border-[var(--border)] flex items-center px-6 gap-8">
                 <NavTab icon="📊" label="Dashboard" active={view === 'dashboard'} onClick={() => setView('dashboard')} />
                 <NavTab icon="➕" label="New Trade" active={view === 'new-trade'} onClick={() => setView('new-trade')} />
                 <NavTab icon="👥" label="Community" />
@@ -239,7 +258,7 @@ function NavTab({ icon, label, active = false, onClick }: any) {
     return (
         <button
             onClick={onClick}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all ${active ? 'bg-[#00DCA3] text-black' : 'text-[#8B949E] hover:text-white hover:bg-[#161B22]'}`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all ${active ? 'bg-[var(--secondary)] text-black' : 'text-gray-400 hover:text-white hover:bg-[var(--card-bg)]'}`}
         >
             <span>{icon}</span>
             {label}
