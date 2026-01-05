@@ -5,7 +5,6 @@ import TradeForm from '@/components/TradeForm';
 import PerformanceAnalytics from '@/components/PerformanceAnalytics';
 import AuthOverlay from '@/components/AuthOverlay';
 import TradingViewChart from '@/components/TradingViewChart';
-import Logo from '@/components/Logo';
 import api from '@/utils/api';
 import { Trade, TradeStats } from '@/types';
 import { ArrowLeft, Bell, TrendingUp, TrendingDown } from 'lucide-react';
@@ -101,36 +100,42 @@ export default function Dashboard() {
     return (
         <div className="h-screen bg-[#0D1117] text-[#EAECEF] font-sans flex flex-col overflow-hidden">
             {/* Top Header */}
-            <header className="h-16 bg-[var(--background)] border-b border-[var(--border)] flex items-center justify-between px-6">
+            <header className="h-16 bg-[#0D1117] border-b border-[#30363D] flex items-center justify-between px-6">
                 <div className="flex items-center gap-6">
                     {view !== 'dashboard' && (
-                        <button onClick={() => setView('dashboard')} className="text-gray-400 hover:text-white">
+                        <button onClick={() => setView('dashboard')} className="text-[#8B949E] hover:text-white">
                             <ArrowLeft size={20} />
                         </button>
                     )}
-                    <Logo size="md" showText={true} />
+                    <div className="flex items-center gap-3">
+                        <span className="text-[#00DCA3] font-black text-xl">PJ</span>
+                        <div className="flex flex-col">
+                            <span className="text-white font-bold text-xs tracking-wide">PERFECT JOURNAL</span>
+                            <span className="text-[#565D68] text-[8px] uppercase tracking-widest">Precision • Performance • Community</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="flex gap-4 items-center">
-                    <button className="px-4 py-1.5 rounded-lg bg-transparent border border-[var(--secondary)] text-[var(--secondary)] text-xs hover:bg-[var(--secondary)] hover:text-black transition-all flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-[var(--secondary)]"></div> Become a Mentor
+                    <button className="px-4 py-1.5 rounded-lg bg-transparent border border-[#00DCA3] text-[#00DCA3] text-xs hover:bg-[#00DCA3] hover:text-black transition-all flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-[#00DCA3]"></div> Become a Mentor
                     </button>
-                    <button className="px-4 py-1.5 rounded-lg bg-transparent border border-[var(--secondary)] text-[var(--secondary)] text-xs hover:bg-[var(--secondary)] hover:text-black transition-all">
+                    <button className="px-4 py-1.5 rounded-lg bg-transparent border border-[#00DCA3] text-[#00DCA3] text-xs hover:bg-[#00DCA3] hover:text-black transition-all">
                         Academy
                     </button>
-                    <button className="px-6 py-1.5 rounded-lg bg-[var(--accent)] text-black font-bold text-xs shadow-lg hover:brightness-110 transition-all glow-amber">
+                    <button className="px-6 py-1.5 rounded-lg bg-[#ffb700] text-black font-bold text-xs shadow-lg hover:bg-[#ffc800]">
                         Subscribe
                     </button>
-                    <Bell size={18} className="text-gray-400 hover:text-white cursor-pointer" />
+                    <Bell size={18} className="text-[#8B949E] hover:text-white cursor-pointer" />
                     <div className="flex items-center gap-2 ml-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[var(--primary)] to-[var(--secondary)]"></div>
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-[#00DCA3]"></div>
                         <span className="text-xs text-white font-medium">Apprentice</span>
                     </div>
                 </div>
             </header>
 
             {/* Navigation Tabs */}
-            <nav className="h-12 bg-[var(--background)] border-b border-[var(--border)] flex items-center px-6 gap-8">
+            <nav className="h-12 bg-[#0D1117] border-b border-[#30363D] flex items-center px-6 gap-8">
                 <NavTab icon="📊" label="Dashboard" active={view === 'dashboard'} onClick={() => setView('dashboard')} />
                 <NavTab icon="➕" label="New Trade" active={view === 'new-trade'} onClick={() => setView('new-trade')} />
                 <NavTab icon="👥" label="Community" />
@@ -258,7 +263,7 @@ function NavTab({ icon, label, active = false, onClick }: any) {
     return (
         <button
             onClick={onClick}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all ${active ? 'bg-[var(--secondary)] text-black' : 'text-gray-400 hover:text-white hover:bg-[var(--card-bg)]'}`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all ${active ? 'bg-[#00DCA3] text-black' : 'text-[#8B949E] hover:text-white hover:bg-[#161B22]'}`}
         >
             <span>{icon}</span>
             {label}

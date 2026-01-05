@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Props {
     symbol: string;
@@ -8,155 +8,175 @@ interface Props {
     takeProfit?: number;
 }
 
-export default function SimpleChart({ symbol, entryPrice, stopLoss, takeProfit }: Props) {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+export default function TradingViewChart({ symbol, entryPrice, stopLoss, takeProfit }: Props) {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [chartType, setChartType] = useState<number>(1); // 1=Candlestick
+    const [interval, setInterval] = useState<string>('D'); // Daily
 
     useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
+        if (!containerRef.current) return;
 
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        // Clear previous widget
+        containerRef.current.innerHTML = '';
 
-        // Set canvas size
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
+        // Create container for widget
+        const widgetContainer = document.createElement('div');
+        widgetContainer.className = 'tradingview-widget-container';
+        widgetContainer.style.height = '100%';
+        widgetContainer.style.width = '100%';
 
-        const width = canvas.width;
-        const height = canvas.height;
+        const widgetDiv = document.createElement('div');
+        widgetDiv.className = 'tradingview-widget';
+        widgetDiv.style.height = 'calc(100% - 32px)';
+        widgetDiv.style.width = '100%';
 
-        // Clear canvas
-        ctx.fillStyle = '#0B0E11';
-        ctx.fillRect(0, 0, width, height);
+        widgetContainer.appendChild(widgetDiv);
+        containerRef.current.appendChild(widgetContainer);
 
-        // Draw grid
-        ctx.strokeStyle = '#30363D';
-        ctx.lineWidth = 1;
-        for (let i = 0; i < 10; i++) {
-            const y = (height / 10) * i;
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(width, y);
-            ctx.stroke();
-        }
-
-        // Generate mock candlestick data
-        const candleCount = 50;
-        const candleWidth = width / candleCount;
-        const basePrice = entryPrice || 1.08;
-
-        let currentPrice = basePrice;
-        const candles = [];
-
-        for (let i = 0; i < candleCount; i++) {
-            const change = (Math.random() - 0.5) * 0.002;
-            const open = currentPrice;
-            const close = currentPrice + change;
-            const high = Math.max(open, close) + Math.random() * 0.001;
-            const low = Math.min(open, close) - Math.random() * 0.001;
-
-            candles.push({ open, high, low, close });
-            currentPrice = close;
-        }
-
-        // Find price range
-        const allPrices = candles.flatMap(c => [c.high, c.low]);
-        if (stopLoss) allPrices.push(stopLoss);
-        if (takeProfit) allPrices.push(takeProfit);
-
-        const maxPrice = Math.max(...allPrices);
-        const minPrice = Math.min(...allPrices);
-        const priceRange = maxPrice - minPrice;
-        const padding = priceRange * 0.1;
-
-        const priceToY = (price: number) => {
-            return height - ((price - (minPrice - padding)) / (priceRange + 2 * padding)) * height;
+        // Create script element
+        const script = document.createElement('script');
+        script.src = 'https://s3.tradingview.com/tv.js';
+        script.async = true;
+        script.onload = () => {
+            if (typeof window.TradingView !== 'undefined') {
+                new window.TradingView.widget({
+                    autosize: true,
+                    symbol: `FX:${symbol}`,
+                    interval: interval,
+                    timezone: 'Etc/UTC',
+                    theme: 'dark',
+                    style: chartType.toString(),
+                    locale: 'en',
+                    toolbar_bg: '#0D1117',
+                    enable_publishing: false,
+                    backgroundColor: '#0D1117',
+                    gridColor: '#30363D',
+                    hide_top_toolbar: false,
+                    hide_legend: false,
+                    save_image: false,
+                    container_id: widgetDiv,
+                    studies: [],
+                    disabled_features: [
+                        'use_localstorage_for_settings',
+                        'volume_force_overlay',
+                        'create_volume_indicator_by_default'
+                    ],
+                    enabled_features: [
+                        'hide_left_toolbar_by_default'
+                    ],
+                    overrides: {
+                        'mainSeriesProperties.candleStyle.upColor': '#00DCA3',
+                        'mainSeriesProperties.candleStyle.downColor': '#da3633',
+                        'mainSeriesProperties.candleStyle.borderUpColor': '#00DCA3',
+                        'mainSeriesProperties.candleStyle.borderDownColor': '#da3633',
+                        'mainSeriesProperties.candleStyle.wickUpColor': '#00DCA3',
+                        'mainSeriesProperties.candleStyle.wickDownColor': '#da3633',
+                    }
+                });
+            }
         };
 
-        // Draw candlesticks
-        candles.forEach((candle, i) => {
-            const x = i * candleWidth + candleWidth / 2;
-            const isGreen = candle.close > candle.open;
+        widgetContainer.appendChild(script);
 
-            // Draw wick
-            ctx.strokeStyle = '#8B949E';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(x, priceToY(candle.high));
-            ctx.lineTo(x, priceToY(candle.low));
-            ctx.stroke();
+        return () => {
+            if (containerRef.current) {
+                containerRef.current.innerHTML = '';
+            }
+        };
+    }, [symbol, chartType, interval]);
 
-            // Draw body
-            const bodyTop = priceToY(Math.max(candle.open, candle.close));
-            const bodyBottom = priceToY(Math.min(candle.open, candle.close));
-            const bodyHeight = bodyBottom - bodyTop;
+    const chartTypes = [
+        { id: 1, name: 'Candlestick', icon: '📊' },
+        { id: 0, name: 'Bar', icon: '📈' },
+        { id: 3, name: 'Line', icon: '📉' },
+        { id: 9, name: 'Hollow Candle', icon: '🕯️' },
+        { id: 8, name: 'Heikin Ashi', icon: '🎯' }
+    ];
 
-            ctx.fillStyle = isGreen ? '#00DCA3' : '#da3633';
-            ctx.fillRect(x - candleWidth * 0.3, bodyTop, candleWidth * 0.6, Math.max(bodyHeight, 1));
-        });
-
-        // Draw entry line
-        if (entryPrice) {
-            ctx.strokeStyle = '#ffb700';
-            ctx.lineWidth = 2;
-            ctx.setLineDash([5, 5]);
-            ctx.beginPath();
-            ctx.moveTo(0, priceToY(entryPrice));
-            ctx.lineTo(width, priceToY(entryPrice));
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            // Label
-            ctx.fillStyle = '#ffb700';
-            ctx.font = '10px monospace';
-            ctx.fillText(`Entry: ${entryPrice.toFixed(5)}`, 10, priceToY(entryPrice) - 5);
-        }
-
-        // Draw stop loss line
-        if (stopLoss) {
-            ctx.strokeStyle = '#da3633';
-            ctx.lineWidth = 2;
-            ctx.setLineDash([5, 5]);
-            ctx.beginPath();
-            ctx.moveTo(0, priceToY(stopLoss));
-            ctx.lineTo(width, priceToY(stopLoss));
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            ctx.fillStyle = '#da3633';
-            ctx.font = '10px monospace';
-            ctx.fillText(`S/L: ${stopLoss.toFixed(5)}`, 10, priceToY(stopLoss) - 5);
-        }
-
-        // Draw take profit line
-        if (takeProfit) {
-            ctx.strokeStyle = '#00DCA3';
-            ctx.lineWidth = 2;
-            ctx.setLineDash([5, 5]);
-            ctx.beginPath();
-            ctx.moveTo(0, priceToY(takeProfit));
-            ctx.lineTo(width, priceToY(takeProfit));
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            ctx.fillStyle = '#00DCA3';
-            ctx.font = '10px monospace';
-            ctx.fillText(`T/P: ${takeProfit.toFixed(5)}`, 10, priceToY(takeProfit) - 5);
-        }
-
-    }, [symbol, entryPrice, stopLoss, takeProfit]);
+    const timeframes = [
+        { label: '1M', value: '1' },
+        { label: '5M', value: '5' },
+        { label: '15M', value: '15' },
+        { label: '1H', value: '60' },
+        { label: '4H', value: '240' },
+        { label: '1D', value: 'D' },
+        { label: '1W', value: 'W' }
+    ];
 
     return (
-        <div className="w-full h-full relative">
-            <canvas
-                ref={canvasRef}
-                className="w-full h-full"
-                style={{ minHeight: '400px' }}
-            />
-            <div className="absolute top-4 left-4 bg-[#161B22] px-3 py-2 rounded border border-[#30363D]">
-                <p className="text-white font-bold text-sm">{symbol}</p>
-                <p className="text-[#8B949E] text-xs">Mock Chart Data</p>
+        <div className="w-full h-full flex flex-col">
+            {/* Controls */}
+            <div className="flex items-center justify-between mb-3 px-2">
+                <div className="flex gap-2">
+                    <select
+                        value={chartType}
+                        onChange={(e) => setChartType(Number(e.target.value))}
+                        className="px-3 py-1 bg-[#161B22] rounded border border-[#30363D] text-[#8B949E] text-xs hover:text-white focus:outline-none focus:border-[#00DCA3]"
+                    >
+                        {chartTypes.map(type => (
+                            <option key={type.id} value={type.id}>
+                                {type.icon} {type.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="flex gap-2">
+                    {timeframes.map(tf => (
+                        <button
+                            key={tf.value}
+                            onClick={() => setInterval(tf.value)}
+                            className={`px-3 py-1 rounded text-xs font-medium transition-all ${interval === tf.value
+                                    ? 'bg-[#00DCA3] text-black'
+                                    : 'bg-[#161B22] border border-[#30363D] text-[#8B949E] hover:text-white'
+                                }`}
+                        >
+                            {tf.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Chart Container */}
+            <div className="flex-1 relative bg-[#0B0E11] rounded-lg overflow-hidden">
+                <div ref={containerRef} className="w-full h-full" />
+
+                {/* Watermark */}
+                <div className="absolute bottom-4 left-4 bg-[#161B22]/80 px-3 py-2 rounded border border-[#30363D]">
+                    <p className="text-[#8B949E] text-xs">Chart for visual reference only - Not for analysis</p>
+                </div>
+
+                {/* Trade Levels Overlay */}
+                {(entryPrice || stopLoss || takeProfit) && (
+                    <div className="absolute top-4 right-4 bg-[#161B22]/90 px-4 py-3 rounded border border-[#30363D] space-y-2">
+                        {entryPrice && (
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-[#ffb700]"></div>
+                                <span className="text-[#ffb700] text-xs font-mono">Entry: {entryPrice.toFixed(5)}</span>
+                            </div>
+                        )}
+                        {stopLoss && (
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-[#da3633]"></div>
+                                <span className="text-[#da3633] text-xs font-mono">S/L: {stopLoss.toFixed(5)}</span>
+                            </div>
+                        )}
+                        {takeProfit && (
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-[#00DCA3]"></div>
+                                <span className="text-[#00DCA3] text-xs font-mono">T/P: {takeProfit.toFixed(5)}</span>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );
+}
+
+// TypeScript declaration for TradingView
+declare global {
+    interface Window {
+        TradingView: any;
+    }
 }
