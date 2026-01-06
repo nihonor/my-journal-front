@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import Link from 'next/link';
+import ForgotPasswordFlow from './ForgotPasswordFlow';
 
 interface Props {
     onAuth: (data: any, isRegister: boolean) => void;
@@ -9,6 +10,7 @@ interface Props {
 
 export default function AuthOverlay({ onAuth }: Props) {
     const [isRegister, setIsRegister] = useState(false);
+    const [showForgotPassword, setShowForgotPassword] = useState(false);
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -20,6 +22,15 @@ export default function AuthOverlay({ onAuth }: Props) {
             : { email, password };
         onAuth(data, isRegister);
     };
+
+    if (showForgotPassword) {
+        return (
+            <ForgotPasswordFlow
+                onBack={() => setShowForgotPassword(false)}
+                onSuccess={() => setShowForgotPassword(false)}
+            />
+        );
+    }
 
     return (
         <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
@@ -80,6 +91,18 @@ export default function AuthOverlay({ onAuth }: Props) {
                                 onChange={e => setPassword(e.target.value)}
                             />
                         </div>
+
+                        {!isRegister && (
+                            <div className="text-right">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowForgotPassword(true)}
+                                    className="text-[#8B949E] hover:text-[#00DCA3] text-xs transition-colors"
+                                >
+                                    Forgot Password?
+                                </button>
+                            </div>
+                        )}
 
                         <button className="w-full bg-[#00DCA3] hover:bg-[#00bda0] text-black font-bold py-3.5 rounded-lg transition-all shadow-[0_0_20px_rgba(0,220,163,0.2)] mt-2 text-sm">
                             {isRegister ? 'Sign Up' : 'Sign In'}
