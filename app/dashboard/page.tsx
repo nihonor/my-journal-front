@@ -100,11 +100,15 @@ export default function Dashboard() {
     const handleAuth = async (data: any, isRegister: boolean) => {
         try {
             const endpoint = isRegister ? '/auth/register' : '/auth/login';
+            console.log('Attempting authentication:', { endpoint, email: data.email });
             const res = await api.post(endpoint, data);
+            console.log('Authentication successful');
             localStorage.setItem('token', res.data.token);
             fetchData();
-        } catch (error) {
-            alert('Authentication failed');
+        } catch (error: any) {
+            console.error('Authentication error:', error.response?.data || error.message);
+            const errorMessage = error.response?.data?.msg || error.response?.data?.message || 'Authentication failed';
+            alert(errorMessage);
         }
     };
 

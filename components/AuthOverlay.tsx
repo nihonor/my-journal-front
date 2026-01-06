@@ -9,12 +9,16 @@ interface Props {
 
 export default function AuthOverlay({ onAuth }: Props) {
     const [isRegister, setIsRegister] = useState(false);
+    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onAuth({ email, password, name: 'Trader' }, isRegister);
+        const data = isRegister
+            ? { name, email, password }
+            : { email, password };
+        onAuth(data, isRegister);
     };
 
     return (
@@ -39,6 +43,20 @@ export default function AuthOverlay({ onAuth }: Props) {
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-5">
+                        {isRegister && (
+                            <div className="space-y-1.5">
+                                <label className="text-[#8B949E] text-[10px] font-medium uppercase tracking-wider ml-1">Name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    className="w-full bg-[#0D1117] border border-[#30363D] text-[#EAECEF] px-4 py-3 rounded-lg focus:border-[#00DCA3] outline-none transition-all placeholder:text-[#30363D] text-sm"
+                                    placeholder="Your Name"
+                                    value={name}
+                                    onChange={e => setName(e.target.value)}
+                                />
+                            </div>
+                        )}
+
                         <div className="space-y-1.5">
                             <label className="text-[#8B949E] text-[10px] font-medium uppercase tracking-wider ml-1">Email</label>
                             <input
